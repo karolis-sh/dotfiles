@@ -92,9 +92,19 @@ install_shell() {
   success "Shell configuration complete"
 }
 
+install_git() {
+  title "Git"
+
+  git config --global include.path "~/.gitconfig.personal"
+  stow --restow --target=$HOME git --verbose
+
+  success "Git configuration complete"
+}
+
 main() {
   install_homebrew
   install_shell
+  install_git
 }
 
 main
