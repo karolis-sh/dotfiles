@@ -1,0 +1,4 @@
+#!/usr/bin/env zsh
+
+# list the PATH separated by new lines
+alias lpath='echo $PATH | tr ":" "\n"'

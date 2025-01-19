@@ -88,7 +88,9 @@ install_shell() {
     git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_SYNTAX_HIGHLIGHTING_DIR" || error "Failed to install zsh-syntax-highlighting"
   fi
 
-  warning "Please restart your terminal or run 'exec $SHELL' to apply changes."
+  stow --restow --target=$HOME zsh --verbose
+
+  warning "Please restart your terminal or run 'exec zsh' to apply changes."
   success "Shell configuration complete"
 }
 
