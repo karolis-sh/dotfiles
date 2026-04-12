@@ -79,6 +79,7 @@ plugins=(
   docker-compose
   npm
   yarn
+  uv
 )
 
 zstyle ':omz:plugins:alias-finder' autoload yes

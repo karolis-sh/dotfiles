@@ -104,9 +104,30 @@ install_git() {
 }
 
 main() {
-  install_homebrew
-  install_shell
-  install_git
+  case "${1:-all}" in
+  all | install)
+    install_homebrew
+    install_shell
+    install_git
+    ;;
+  brew | homebrew)
+    install_homebrew
+    ;;
+  shell)
+    install_shell
+    ;;
+  git)
+    install_git
+    ;;
+  help | -h | --help)
+    cat <<'EOF'
+Usage: ./install.sh [all|install|brew|shell|git]
+EOF
+    ;;
+  *)
+    error "Unknown target: $1"
+    ;;
+  esac
 }
 
-main
+main "$1"
