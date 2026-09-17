@@ -2,3 +2,31 @@
 
 # list the PATH separated by new lines
 alias lpath='echo $PATH | tr ":" "\n"'
+
+helpme() {
+  cat <<'EOF'
+Find something you forgot
+  Ctrl-R          Search command history; Enter puts the command on your prompt
+  Ctrl-T          Pick a file with a preview; Enter inserts its path
+  Esc             Close a picker without selecting
+  Right arrow     Accept the gray autosuggestion while typing
+
+Move around
+  z project       Jump to a matching directory you've visited before
+  zi              Choose from your visited directories
+  cd path         Visit a new directory; zoxide learns it automatically
+
+Search and read
+  fd name         Find filenames containing name
+  rg 'text'       Search inside files, respecting .gitignore
+  bat file        Read a file with syntax highlighting
+
+Project tools
+  uv run command  Run a command in the project's Python environment
+  uvx tool        Run a Python CLI without a permanent install
+  vp env doctor   Check Node and package-manager setup
+
+  command --help  Show a CLI's own options and commands
+  helpme          Show this reminder
+EOF
+}
