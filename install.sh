@@ -1,6 +1,7 @@
 #!/bin/bash
+set -euo pipefail
 
-DOTFILES="$(pwd)"
+DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 COLOR_GRAY="\033[1;38;5;243m"
 COLOR_BLUE="\033[1;34m"
 COLOR_GREEN="\033[1;32m"
@@ -31,12 +32,28 @@ success() {
   echo -e "${COLOR_GREEN}$1${COLOR_NONE}"
 }
 
+# Download fully before execution so a failed download cannot report success.
+run_installer() (
+  installer_shell="$1"
+  installer_url="$2"
+  shift 2
+  installer_file="$(mktemp)"
+  trap 'rm -f "$installer_file"' EXIT
+  curl -fsSL "$installer_url" -o "$installer_file"
+  "$installer_shell" "$installer_file" "$@"
+)
+
 install_homebrew() {
   title "Homebrew"
 
   if ! command -v brew &>/dev/null; then
     info "Homebrew not installed. Installing."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    run_installer /bin/bash https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+    if [ -x /opt/homebrew/bin/brew ]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [ -x /usr/local/bin/brew ]; then
+      eval "$(/usr/local/bin/brew shellenv)"
+    fi
   else
     info "Homebrew is already installed. Updating..."
     brew update
@@ -45,25 +62,39 @@ install_homebrew() {
   brew --version
 
   info "Installing brew dependencies from Brewfile"
-  brew bundle
+  brew bundle --file="$DOTFILES/Brewfile"
 
   success "Homebrew installation complete"
+}
+
+install_vite_plus() {
+  title "Vite+"
+  if command -v vp >/dev/null 2>&1; then
+    info "Vite+ is already installed"
+  else
+    VP_NODE_MANAGER=yes run_installer /bin/bash https://vite.plus
+    source "$HOME/.config/vite-plus/env"
+  fi
+  vp --version
 }
 
 install_shell() {
   title "Shell"
 
-  if [ "$SHELL" != "$(which zsh)" ]; then
+  zsh_bin="$(command -v zsh)"
+  if [ "${SHELL:-}" != "$zsh_bin" ]; then
     info "Setting Zsh as the default shell"
-    echo "/opt/homebrew/bin/zsh" | sudo tee -a /etc/shells
-    chsh -s "$(which zsh)" || error "Failed to change the default shell to Zsh"
+    if ! grep -Fxq "$zsh_bin" /etc/shells; then
+      printf '%s\n' "$zsh_bin" | sudo tee -a /etc/shells
+    fi
+    chsh -s "$zsh_bin" || error "Failed to change the default shell to Zsh"
   else
     info "Zsh is already the default shell"
   fi
 
   if [ ! -d "$HOME/.oh-my-zsh" ]; then
     info "Installing Oh My Zsh"
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || error "Failed to install Oh My Zsh"
+    run_installer /bin/sh https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh --unattended --keep-zshrc
   else
     info "Oh My Zsh is already installed"
   fi
@@ -88,7 +119,7 @@ install_shell() {
     git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_SYNTAX_HIGHLIGHTING_DIR" || error "Failed to install zsh-syntax-highlighting"
   fi
 
-  stow --restow --target=$HOME zsh --verbose
+  bash "$DOTFILES/scripts/install-zsh.sh" || error "Failed to configure Zsh"
 
   warning "Please restart your terminal or run 'exec zsh' to apply changes."
   success "Shell configuration complete"
@@ -97,10 +128,18 @@ install_shell() {
 install_git() {
   title "Git"
 
-  git config --global include.path "~/.gitconfig.personal"
-  stow --restow --target=$HOME git --verbose
+  stow --restow --dir="$DOTFILES" --target="$HOME" git --verbose
+  if ! git config --global --get-all include.path | grep -Fxq '~/.gitconfig.personal'; then
+    git config --global --add include.path "~/.gitconfig.personal"
+  fi
 
   success "Git configuration complete"
+}
+
+install_ghostty() {
+  title "Ghostty configuration"
+  stow --restow --no-folding --dir="$DOTFILES" --target="$HOME" ghostty
+  success "Ghostty configuration complete"
 }
 
 main() {
@@ -108,7 +147,9 @@ main() {
   all | install)
     install_homebrew
     install_shell
+    install_vite_plus
     install_git
+    install_ghostty
     ;;
   brew | homebrew)
     install_homebrew
@@ -130,4 +171,6 @@ EOF
   esac
 }
 
-main "$1"
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main "$@"
+fi

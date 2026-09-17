@@ -5,7 +5,6 @@
 [core]
   editor = code --wait
   excludesfile = ~/.gitignore
-  ignorecase = false
 
 [push]
   default = current

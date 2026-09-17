@@ -1,0 +1,4 @@
+theme = Dracula
+keybind = global:alt+space=toggle_visibility
+window-save-state = always
+macos-hidden = always
